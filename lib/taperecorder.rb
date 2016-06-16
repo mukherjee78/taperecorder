@@ -1,5 +1,10 @@
-require "taperecorder/version"
+require "json"
+require "active_support/all"
+require_relative "taperecorder/version"
+require_relative "taperecorder/middleware"
 
-module Taperecorder
-  # Your code goes here...
+if defined?(Rails) && Rails.env.development?
+  require "taperecorder/engine"
 end
+
+require "taperecorder/rails" if defined?(Rails)
