@@ -11,11 +11,9 @@ module Taperecorder
       status, headers, response = @app.call(env)
 
       if html_headers?(status, headers) && body = response_body(response)
-        if body =~ script_matcher('taperecorder')
-          inject_taperecorder_helper!(body)
-        else
-          inject_taperecorder_helper!(body)
-        end
+        #insert after jquery 
+        inject_taperecorder_js!(body, 'jquery')
+        inject_taperecorder_html!(body)
 
         content_length = body.bytesize.to_s
 
@@ -44,29 +42,34 @@ module Taperecorder
       response.respond_to?(:committed?) && response.committed?
     end
 
-    def inject_taperecorder_helper!(html)
-      html.sub!(/<body[^>]*>/) { "#{$~}\n#{render_taperecorder_helper}" }
+    def inject_taperecorder_js!(html, after_script_name)
+      html.sub!(/<script[^>].*#{after_script_name}.*<\/script>/x) { "#{$~}\n<script type=\"text/javascript\" >#{render_taperecorder_js}</script>" }
     end
 
-    def render_taperecorder_helper
+    def inject_taperecorder_html!(html)
+      html.sub!(/<body[^>]*>/) { "#{$~}\n#{render_taperecorder_html}" }
+    end
+
+    def render_taperecorder_js
       if ApplicationController.respond_to?(:render)
         # Rails 5
-        ApplicationController.render(:partial => "/taperecorder_helper").html_safe
+        ApplicationController.render(:partial => "/taperecorder_js").html_safe
       else
         # Rails <= 4.2
         ac = ActionController::Base.new
-        ac.render_to_string(:partial => '/taperecorder_helper').html_safe
+        ac.render_to_string(:partial => '/taperecorder_js').html_safe
       end
     end
 
-    # Matches:
-    def script_matcher(script_name)
-      /
-        <script[^>]+
-        \/#{script_name}
-        \.js                   # Must have .js extension
-        [^>]+><\/script>
-      /x
+    def render_taperecorder_html
+      if ApplicationController.respond_to?(:render)
+        # Rails 5
+        ApplicationController.render(:partial => "/taperecorder_html").html_safe
+      else
+        # Rails <= 4.2
+        ac = ActionController::Base.new
+        ac.render_to_string(:partial => '/taperecorder_html').html_safe
+      end
     end
 
     def helper
