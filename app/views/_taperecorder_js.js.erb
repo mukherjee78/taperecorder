@@ -1,1 +1,28 @@
-console.log("Starting Taperecorder...");
+//This is singleton
+var Taperecorder = new function() {
+    var _tape = this;
+
+    _tape.start = function() {
+        console.log("Starting Taperecorder...");
+
+        _tape.bindClickEvents();
+        _tape.bindKeyEvents();
+
+        jQuery('#taperecorder_start').hide();
+        jQuery('#taperecorder_stop').show();
+    };
+
+    _tape.stop = function() {
+        console.log("Stoping Taperecorder...");
+
+        jQuery('#taperecorder_start').show();
+        jQuery('#taperecorder_stop').hide();
+    }
+
+    _tape.bindClickEvents = function() {
+        console.log("Binding Taperecorder click events...");
+    }
+    _tape.bindKeyEvents = function() {
+        console.log("Binding Taperecorder key events...");
+    }
+};

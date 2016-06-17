@@ -1,3 +1,30 @@
-<div id="taperecorder_html" style="display:none">
---WIP--
+<style type="text/css">
+	#taperecorder_html{
+		position: fixed;
+		bottom: 40px;
+		left: 10px;
+		z-index: 9999999999;
+		background: #c0c0c0;
+		padding: 5px;
+		border: solid 1px #e0e0e0;
+	}
+	#taperecorder_html button{
+		font-size: 2em;
+		padding: 5px;
+	}
+
+	#taperecorder_start{
+		color: #000;
+		background: green;
+		display: block;
+	}
+	#taperecorder_stop{
+		color: #fff;
+		background: red;
+		display: none;
+	}
+</style>
+<div id="taperecorder_html">
+	<button id="taperecorder_start" onclick="Taperecorder.start()">&#9924;</button>
+	<button id="taperecorder_stop" onclick="Taperecorder.stop()">&#9927;</button>
 </div>
