@@ -17,6 +17,14 @@
 
 
 
+// JS Hack
+Element.prototype._addEventListener = Element.prototype.addEventListener;
+Element.prototype.addEventListener = function(a,b,c) {
+    var _classes = this.getAttribute("class") || "";
+    this.setAttribute("class", _classes+" taperecorder_capture");
+    this._addEventListener(a,b,c);
+};
+
 
 //Taperecorder is singleton
 var Taperecorder = new function() {
@@ -26,7 +34,7 @@ var Taperecorder = new function() {
     _tape.status = function(_set_status) {
         var _status = _tape.getCookie('taperecorder') || "";
         
-        if(typeof _status == typeof undefined || _status == null || _status == "" || _status == "null"){
+        if(_tape.is_blank(_status)){
             _tape.setCookie('taperecorder', 'stopped', 1);
             _status = 'stopped';
         }
@@ -74,7 +82,7 @@ var Taperecorder = new function() {
 
     _tape.scenario_present = function(){
         var taperecorder_scenario = localStorage.taperecorder_scenario || "";
-        if(typeof taperecorder_scenario == typeof undefined || taperecorder_scenario == null || taperecorder_scenario == "" || taperecorder_scenario == "undefined" || taperecorder_scenario == "null"){
+        if(_tape.is_blank(taperecorder_scenario)){
             return false;
         }
         return true;
@@ -82,7 +90,7 @@ var Taperecorder = new function() {
 
     _tape.lastkey_present = function(){
         var taperecorder_lastkey = localStorage.taperecorder_lastkey || "";
-        if(typeof taperecorder_lastkey == typeof undefined || taperecorder_lastkey == null || taperecorder_lastkey == "" || taperecorder_lastkey == "undefined" || taperecorder_lastkey == "null"){
+        if(_tape.is_blank(taperecorder_lastkey)){
             return false;
         }
         return true;
@@ -100,8 +108,8 @@ var Taperecorder = new function() {
         _tape.event_lock = true;
 
         //Sanitize
-        _step = _step.replace(/(\r\n|\n|\r)/gm,"").trim();
-        _value = _value.replace(/(\r\n|\n|\r)/gm,"").trim();
+        _step = _tape.trim(_step);
+        _value = _tape.trim(_value);
 
         var taperecorder_scenario = localStorage.taperecorder_scenario || "";
         var taperecorder_lastkey = localStorage.taperecorder_lastkey || "";
@@ -115,12 +123,14 @@ var Taperecorder = new function() {
         } 
         if(_tape.lastkey_present() && taperecorder_lastkey==_key){
             taperecorder_lastkey = "And";
+        }else{
+            taperecorder_lastkey = _key;
         }
 
-        taperecorder_scenario =  taperecorder_scenario + _key + " " + _step + " \"" + _value + "\" " + "\n";
+        taperecorder_scenario =  taperecorder_scenario + taperecorder_lastkey + " " + _step + " \"" + _value + "\" " + "\n";
 
         localStorage.taperecorder_scenario = taperecorder_scenario;
-        localStorage.taperecorder_lastkey = taperecorder_lastkey;
+        localStorage.taperecorder_lastkey = _key;
 
         console.log("Step added: "+taperecorder_scenario);
     };
@@ -132,11 +142,11 @@ var Taperecorder = new function() {
             e = e || window.event
             var target = e.target || e.srcElement;
             if(!_tape.event_lock && !_tape.hasClass(target, 'taperecorder')){
-                if(/textarea|input/i.test( target.nodeName )){
-
-                }else if(/a/i.test( target.nodeName )){
+                if(/a/i.test( target.nodeName )){
                     _tape.step("When", "I follow", _tape.getTextOrId(target));
                 }else if(/button/i.test( target.nodeName )){
+                    _tape.step("When", "I press", _tape.getTextOrId(target));
+                }else if(_tape.hasClass(target, 'taperecorder_capture')){
                     _tape.step("When", "I press", _tape.getTextOrId(target));
                 }
             }
@@ -147,15 +157,36 @@ var Taperecorder = new function() {
     };
 
     //Utilities
+    _tape.is_blank = function(txt){
+        txt = _tape.trim(txt)
+        if(typeof txt == typeof undefined || txt == null || txt == "" || txt == "undefined" || txt == "null"){
+            return true;
+        }
+        return false;
+    };
+    _tape.trim = function(str){
+        return str.replace(/(\r\n|\n|\r)/gm,"").trim();
+    };
     _tape.getTextOrId = function(element) {
         var txt = element.textContent || element.innerText;
+        txt = _tape.trim(txt);
+        if(_tape.is_blank(txt)){
+            txt = element.id || element.getAttribute('name');
+        }
         return txt;
     };
-
+    _tape.getLabelTextOrId = function(element) {
+       var idVal = element.id;
+       labels = document.getElementsByTagName('label');
+       for( var i = 0; i < labels.length; i++ ) {
+          if (labels[i].htmlFor == idVal)
+               return labels[i].textContent || labels[i].innerText;
+       }
+       return element.id || element.getAttribute('name');
+    };
     _tape.hasClass = function(element, cls) {
         return (' ' + element.className + ' ').indexOf(' ' + cls + ' ') > -1;
     };
-
 
     _tape.setCookie = function(cname, cvalue, exdays) {
         var d = new Date();
@@ -176,11 +207,5 @@ var Taperecorder = new function() {
             }
         }
         return "";
-    } 
+    };
 };
-
-window.document.onload = function(e){ 
-    if(Taperecorder.status()=='started'){
-        Taperecorder.start();
-    }
-}
