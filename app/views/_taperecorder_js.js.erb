@@ -4,7 +4,6 @@
 // When/And I press <button>
 // When/And I follow <link>
 // When/And I fill in <field> with <value>
-// When/And I fill in <value> for <field>
 // When/And I select <value> from <field>
 // When/And I check <field>
 // When/And I uncheck <field>
@@ -69,6 +68,10 @@ var Taperecorder = new function() {
     _tape.stop = function() {
         console.log("Stoping Taperecorder...");
 
+        _tape.step("Then", "I should be on", window.location.pathname);
+        _tape.step("Then", "I should see", "<replace this with a text you see in page>");
+        _tape.step("Then", "I should not see", "<replace this with a text you see in page>");
+
         clearInterval(_tape.lock_manager);
 
         document.getElementById('taperecorder_start').style.display = "block";
@@ -103,15 +106,21 @@ var Taperecorder = new function() {
         localStorage.taperecorder_lastkey = null;
     };
     //Add a step to local storage
-    _tape.step = function(_key, _step, _value) {
+    _tape.step = function(_key, _action, _field, _keyword,_value) {
         //Lock
         _tape.event_lock = true;
 
         //Sanitize
-        _step = _tape.trim(_step);
-        _value = _tape.trim(_value);
+        _action = _tape.trim(_action);
+        _field = _tape.trim(_field);
+        if(!_tape.is_blank(_value))
+            _value = _tape.trim(_value);
+        if(!_tape.is_blank(_keyword))
+            _keyword = _tape.trim(_keyword);
 
         var taperecorder_scenario = localStorage.taperecorder_scenario || "";
+
+        var taperecorder_laststep = localStorage.taperecorder_laststep || "";
         var taperecorder_lastkey = localStorage.taperecorder_lastkey || "";
 
 
@@ -127,9 +136,18 @@ var Taperecorder = new function() {
             taperecorder_lastkey = _key;
         }
 
-        taperecorder_scenario =  taperecorder_scenario + taperecorder_lastkey + " " + _step + " \"" + _value + "\" " + "\n";
+        if(!_tape.is_blank(_keyword) && !_tape.is_blank(_value)){
+            var _step =  _action + " \"" + _field + "\" " + _keyword + " \"" + _value + "\" " + "\n";
+        }else{
+            var _step = _action + " \"" + _field + "\" " + "\n";
+        }
+        if (localStorage.taperecorder_laststep == _step)
+            return;
+
+        taperecorder_scenario = taperecorder_scenario + taperecorder_lastkey + " " + _step;
 
         localStorage.taperecorder_scenario = taperecorder_scenario;
+        localStorage.taperecorder_laststep = _step;
         localStorage.taperecorder_lastkey = _key;
 
         console.log("Step added: "+taperecorder_scenario);
@@ -154,11 +172,33 @@ var Taperecorder = new function() {
     };
     _tape.bindKeyEvents = function() {
         console.log("Binding Taperecorder key events...");
+        document.addEventListener('keyup', function(e) { 
+            e = e || window.event
+            var target = e.target || e.srcElement;
+            if(!_tape.event_lock && !_tape.hasClass(target, 'taperecorder')){
+                if(/input|textarea/i.test( target.nodeName )){
+                    var _current_input = target;
+                    if(_tape.is_blank(_tape.last_input))
+                        _tape.last_input = _current_input;
+
+                    if(_tape.getLabelTextOrId(_tape.last_input) != _tape.getLabelTextOrId(_current_input)){
+                        _tape.create_step_for_field(_tape.last_input);
+                    }
+                    //Finally record as last one
+                    _tape.last_input = _current_input;
+                }
+            }
+        }, true);
+    };
+    _tape.create_step_for_field = function(element){
+        if(/text|password/i.test( element.getAttribute('type') ) || element.nodeName=="textarea")
+            _tape.step("When", "I fill in", _tape.getTextOrId(element), "with", _tape.getValue(element));
+        else if(/file/i.test( element.getAttribute('type') ))
+            _tape.step("When", "I attach the file", _tape.getValue(element), "to", _tape.getTextOrId(element));
     };
 
     //Utilities
     _tape.is_blank = function(txt){
-        txt = _tape.trim(txt)
         if(typeof txt == typeof undefined || txt == null || txt == "" || txt == "undefined" || txt == "null"){
             return true;
         }
@@ -166,6 +206,9 @@ var Taperecorder = new function() {
     };
     _tape.trim = function(str){
         return str.replace(/(\r\n|\n|\r)/gm,"").trim();
+    };
+    _tape.getValue = function(element) {
+        return element.value;
     };
     _tape.getTextOrId = function(element) {
         var txt = element.textContent || element.innerText;
@@ -209,3 +252,9 @@ var Taperecorder = new function() {
         return "";
     };
 };
+
+
+jQuery(document).ready(function(){
+    if(Taperecorder.scenario_present())
+        Taperecorder.start();
+});
