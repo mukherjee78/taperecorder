@@ -19,7 +19,12 @@ Or install it yourself as:
 
 ## Usage
 
---WIP--
+Just simply include the gem, you will see a green button in left bottom corner of your browser and then just click on the green start record button.
+When you have done navigating the scenario, click the button again.
+
+See it action below. Recording of a login screen.
+
+[![Taperecoder in Action](http://img.youtube.com/vi/Esn609cHoMQ/0.jpg)](http://www.youtube.com/watch?v=Esn609cHoMQ)
 
 ## Development
 
