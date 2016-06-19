@@ -49,7 +49,8 @@ var Taperecorder = new function() {
         _tape.status('started');
 
         _tape.bindClickEvents();
-        _tape.bindKeyEvents();
+        _tape.bindFocusEvents();
+        _tape.bindBlurEvents();
 
         document.getElementById('taperecorder_start').style.display = "none";
         document.getElementById('taperecorder_stop').style.display = "block";
@@ -170,31 +171,35 @@ var Taperecorder = new function() {
             }
         }, true);
     };
-    _tape.bindKeyEvents = function() {
-        console.log("Binding Taperecorder key events...");
-        document.addEventListener('keyup', function(e) { 
+    _tape.bindFocusEvents = function() {
+        console.log("Binding Taperecorder focus events...");
+        document.addEventListener('focus', function(e) { 
             e = e || window.event
             var target = e.target || e.srcElement;
-            if(!_tape.event_lock && !_tape.hasClass(target, 'taperecorder')){
-                if(/input|textarea/i.test( target.nodeName )){
-                    var _current_input = target;
-                    if(_tape.is_blank(_tape.last_input))
-                        _tape.last_input = _current_input;
-
-                    if(_tape.getLabelTextOrId(_tape.last_input) != _tape.getLabelTextOrId(_current_input)){
-                        _tape.create_step_for_field(_tape.last_input);
-                    }
-                    //Finally record as last one
-                    _tape.last_input = _current_input;
-                }
-            }
+            if(/input|textarea/i.test( target.nodeName ))
+                _tape.last_input = target;
+        }, true);
+    };
+    _tape.bindBlurEvents = function() {
+        console.log("Binding Taperecorder blur events...");
+        document.addEventListener('blur', function(e) { 
+            if(!_tape.is_blank(_tape.last_input))
+                _tape.create_step_for_field(_tape.last_input);
         }, true);
     };
     _tape.create_step_for_field = function(element){
-        if(/text|password/i.test( element.getAttribute('type') ) || element.nodeName=="textarea")
+        if(!(/file|checkbox|radio/i.test( element.getAttribute('type') )) || element.nodeName=="textarea")
             _tape.step("When", "I fill in", _tape.getTextOrId(element), "with", _tape.getValue(element));
         else if(/file/i.test( element.getAttribute('type') ))
             _tape.step("When", "I attach the file", _tape.getValue(element), "to", _tape.getTextOrId(element));
+        else if(/checkbox/i.test( element.getAttribute('type') ))
+            if(element.checked == true)
+                _tape.step("When", "I check", _tape.getTextOrId(element));
+            else
+                _tape.step("When", "I uncheck", _tape.getTextOrId(element));
+        else if(/radio/i.test( element.getAttribute('type') ) && element.checked == true)
+            _tape.step("When", "I choose", _tape.getTextOrId(element));
+        _tape.last_input = null;
     };
 
     //Utilities
